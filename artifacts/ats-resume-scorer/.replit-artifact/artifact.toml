@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "ATS Resume Scorer"
+description = "A focused resume optimization tool that scores a resume against a target role, identifies ATS risks, and turns missing keywords into concrete next steps."
+version = "1.0.0"
+id = "artifacts/ats-resume-scorer"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25909
+
+[services.development]
+run = "pnpm --filter @workspace/ats-resume-scorer run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ats-resume-scorer", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ats-resume-scorer/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25909"
+BASE_PATH = "/"

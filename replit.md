@@ -1,6 +1,6 @@
-# [Project name]
+# ATS Resume Scorer
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A browser-only resume analysis tool that compares a resume with a target role and turns ATS signals into prioritized edits.
 
 ## Run & Operate
 
@@ -22,24 +22,31 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/ats-resume-scorer/src/App.tsx` — root experience, local scoring logic, report actions
+- `artifacts/ats-resume-scorer/src/index.css` — visual theme and responsive layout
+- `artifacts/ats-resume-scorer` — deployable React/Vite web artifact
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Resume and job description text are analyzed locally in the browser; no upload or API is required for the first version.
+- Scoring is deterministic and explainable across parsing health, keyword alignment, impact signals, and clarity.
+- Session history is intentionally ephemeral because there is no account or persistence layer in this version.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Paste resume and target role text or load a supported text file.
+- Try a demo resume and role to see the full report.
+- Get an overall score, weighted signal breakdown, parser readout, and prioritized fixes with examples.
+- Copy or download a concise text report.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+_No project-specific preferences recorded._
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Text file import supports `.txt`, `.md`, and `.rtf`; binary PDF/DOCX parsing is not included in the browser-only version.
 
 ## Pointers
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
