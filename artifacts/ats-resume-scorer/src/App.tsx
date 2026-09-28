@@ -673,12 +673,12 @@ function SavedJobsPage({ onAnalyze, onNotify }: { onAnalyze: () => void; onNotif
 }
 
 function ProfilePage({ onNotify }: { onNotify: (message: string) => void }) {
-  const [profile, setProfile] = useState({ name: 'Sushant', email: 'sushant@example.com', college: 'University of Delhi', degree: 'B.Tech. Computer Science', skills: 'React, TypeScript, SQL, Product Design' });
+  const [profile, setProfile] = useState({ name: 'Sushant Raj', email: 'sushant@example.com', college: 'University of Delhi', degree: 'B.Tech. Computer Science', skills: 'React, TypeScript, SQL, Product Design' });
   const update = (field: keyof typeof profile) => (event: ChangeEvent<HTMLInputElement>) => setProfile((current) => ({ ...current, [field]: event.target.value }));
   return (
     <section className="page-section">
       <div className="page-title-row"><div><h1>Profile</h1><p>Keep the details attached to your resume scoring workspace up to date.</p></div><button className="blue-button" onClick={() => onNotify('Profile changes saved')}><Check size={15} /> Save changes</button></div>
-      <div className="profile-layout"><div className="profile-card profile-summary"><div className="large-avatar">SC</div><h2>{profile.name}</h2><p>{profile.email}</p><span className="profile-status"><CheckCircle2 size={13} /> Workspace member</span></div><div className="profile-card"><div className="card-title-row"><h2>Personal details</h2><span>Shown on your workspace</span></div><div className="profile-form"><label>Full name<input value={profile.name} onChange={update('name')} /></label><label>Email address<input value={profile.email} onChange={update('email')} type="email" /></label><label>College<input value={profile.college} onChange={update('college')} /></label><label>Degree<input value={profile.degree} onChange={update('degree')} /></label><label className="full-field">Skills<input value={profile.skills} onChange={update('skills')} /></label></div></div></div>
+      <div className="profile-layout"><div className="profile-card profile-summary"><div className="large-avatar">S</div><h2>{profile.name}</h2><p>{profile.email}</p><span className="profile-status"><CheckCircle2 size={13} /> Workspace member</span></div><div className="profile-card"><div className="card-title-row"><h2>Personal details</h2><span>Shown on your workspace</span></div><div className="profile-form"><label>Full name<input value={profile.name} onChange={update('name')} /></label><label>Email address<input value={profile.email} onChange={update('email')} type="email" /></label><label>College<input value={profile.college} onChange={update('college')} /></label><label>Degree<input value={profile.degree} onChange={update('degree')} /></label><label className="full-field">Skills<input value={profile.skills} onChange={update('skills')} /></label></div></div></div>
     </section>
   );
 }
