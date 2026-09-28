@@ -37,6 +37,7 @@ A browser-only resume analysis tool that compares a resume with a target role an
 - Paste resume and target role text or load a supported text file.
 - Try a demo resume and role to see the full report.
 - Move between Dashboard, Analyze Resume, My Reports, Saved Jobs, Profile, and Settings views.
+- Enter through a local demo login screen, with working profile, settings, notification, report search/delete, and saved-job apply interactions.
 - Get an overall score, weighted signal breakdown, parser readout, and prioritized fixes with examples.
 - Copy or download a concise text report.
 
@@ -46,7 +47,7 @@ _No project-specific preferences recorded._
 
 ## Gotchas
 
-- Text file import supports `.txt`, `.md`, and `.rtf`; binary PDF/DOCX parsing is not included in the browser-only version.
+- Local file import supports `.txt`, `.md`, and `.rtf` up to 5 MB, including drag-and-drop; binary PDF/DOCX parsing is not included in the browser-only version.
 
 ## Pointers
 

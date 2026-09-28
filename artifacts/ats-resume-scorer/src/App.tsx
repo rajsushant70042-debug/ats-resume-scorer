@@ -1,4 +1,4 @@
-import { type ChangeEvent, type ReactNode, useMemo, useRef, useState } from 'react';
+import { type ChangeEvent, type DragEvent, type FormEvent, type ReactNode, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,14 +16,18 @@ import {
   FileCheck2,
   FileText,
   FileUp,
+  Github,
   LayoutDashboard,
   Lightbulb,
   ListChecks,
+  LockKeyhole,
   LogOut,
+  Mail,
   Menu,
   MoreHorizontal,
   Plus,
   Search,
+  ShieldCheck,
   Settings,
   Sparkles,
   Target,
@@ -100,10 +104,12 @@ const ACTION_VERBS = [
   'optimized',
   'conducted',
 ];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 type Page = 'dashboard' | 'analyze' | 'report' | 'reports' | 'saved' | 'profile' | 'settings';
 type Signal = { name: string; score: number; note: string; tone: 'blue' | 'green' | 'orange' | 'purple' };
 type Fix = { title: string; detail: string; example: string };
+type ReportRecord = { id: string; file: string; role: string; score: number; date: string };
 type Analysis = {
   score: number;
   parsing: number;
@@ -258,6 +264,7 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 function AppContent() {
+  const [authenticated, setAuthenticated] = useState(false);
   const [page, setPage] = useState<Page>('dashboard');
   const [resume, setResume] = useState('');
   const [job, setJob] = useState('');
@@ -266,6 +273,8 @@ function AppContent() {
   const [expandedFix, setExpandedFix] = useState<number | null>(0);
   const [toast, setToast] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resumeCount = useMemo(() => words(resume).length, [resume]);
   const canAnalyze = resume.trim().length > 30;
@@ -278,6 +287,12 @@ function AppContent() {
   const navigate = (nextPage: Page) => {
     setPage(nextPage);
     setSidebarOpen(false);
+  };
+
+  const signOut = () => {
+    setAuthenticated(false);
+    setSidebarOpen(false);
+    showToast('You have been logged out');
   };
 
   const loadSample = (nextPage: Page = 'analyze') => {
@@ -297,14 +312,17 @@ function AppContent() {
     setExpandedFix(0);
   };
 
-  const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const processFile = (file?: File) => {
     if (!file) return;
-    setFileName(file.name);
-    if (!/\.(txt|md|rtf)$/i.test(file.name)) {
-      showToast('Choose a TXT, MD, or RTF file for local parsing');
+    if (file.size > MAX_FILE_SIZE) {
+      showToast('Keep resume files under 5 MB');
       return;
     }
+    if (!/\.(txt|md|rtf)$/i.test(file.name)) {
+      showToast('For local parsing, choose a TXT, MD, or RTF file');
+      return;
+    }
+    setFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
       setResume(String(reader.result ?? ''));
@@ -314,13 +332,27 @@ function AppContent() {
     reader.readAsText(file);
   };
 
+  const handleFile = (event: ChangeEvent<HTMLInputElement>) => {
+    processFile(event.target.files?.[0]);
+    event.target.value = '';
+  };
+
+  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault();
+    processFile(event.dataTransfer.files?.[0]);
+  };
+
   const runAnalysis = () => {
     if (!canAnalyze) return;
-    const result = analyze(resume, job);
-    setAnalysis(result);
-    setExpandedFix(0);
-    navigate('report');
-    window.setTimeout(() => document.getElementById('report')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    setIsAnalyzing(true);
+    window.setTimeout(() => {
+      const result = analyze(resume, job);
+      setAnalysis(result);
+      setExpandedFix(0);
+      setIsAnalyzing(false);
+      navigate('report');
+      window.setTimeout(() => document.getElementById('report')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    }, 650);
   };
 
   const reportText = analysis
@@ -337,9 +369,12 @@ function AppContent() {
     }
   };
 
-  const downloadReport = () => {
-    if (!reportText) return;
-    const blob = new Blob([reportText], { type: 'text/plain' });
+  const downloadReport = (reportAnalysis = analysis) => {
+    const currentReportText = reportAnalysis
+      ? `ATS Resume Report\nOverall score: ${reportAnalysis.score}/100\nParsing health: ${reportAnalysis.parsing}/100\nKeyword alignment: ${reportAnalysis.keywords}/100\nImpact signals: ${reportAnalysis.impact}/100\nClarity & scanability: ${reportAnalysis.clarity}/100\n\nPriority fixes:\n${reportAnalysis.fixes.map((fix, index) => `${index + 1}. ${fix.title} — ${fix.detail}`).join('\n')}`
+      : '';
+    if (!currentReportText) return;
+    const blob = new Blob([currentReportText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -361,8 +396,10 @@ function AppContent() {
           resumeCount={resumeCount}
           fileInputRef={fileInputRef}
           handleFile={handleFile}
+          handleDrop={handleDrop}
           canAnalyze={canAnalyze}
           runAnalysis={runAnalysis}
+          isAnalyzing={isAnalyzing}
           clearAll={clearAll}
           loadSample={() => loadSample('analyze')}
         />
@@ -380,15 +417,19 @@ function AppContent() {
         />
       );
     }
-    if (page === 'reports') return <ReportsPage onViewReport={() => { if (!analysis) setAnalysis(analyze(SAMPLE_RESUME, SAMPLE_JOB)); navigate('report'); }} />;
-    if (page === 'saved') return <SavedJobsPage onAnalyze={() => loadSample('analyze')} />;
-    if (page === 'profile') return <SimplePage icon={<UserRound />} title="Profile" description="Manage the details attached to your resume scoring workspace." action="Edit profile" />;
-    if (page === 'settings') return <SimplePage icon={<Settings />} title="Settings" description="Keep your workspace preferences and privacy controls in one place." action="Review settings" />;
+    if (page === 'reports') return <ReportsPage onViewReport={() => { if (!analysis) setAnalysis(analyze(SAMPLE_RESUME, SAMPLE_JOB)); navigate('report'); }} onDownload={() => downloadReport(analysis ?? analyze(SAMPLE_RESUME, SAMPLE_JOB))} onNotify={showToast} />;
+    if (page === 'saved') return <SavedJobsPage onAnalyze={() => loadSample('analyze')} onNotify={showToast} />;
+    if (page === 'profile') return <ProfilePage onNotify={showToast} />;
+    if (page === 'settings') return <SettingsPage darkMode={darkMode} setDarkMode={setDarkMode} onSignOut={signOut} onNotify={showToast} />;
     return <DashboardPage onAnalyze={() => navigate('analyze')} onViewReport={() => { if (!analysis) setAnalysis(analyze(SAMPLE_RESUME, SAMPLE_JOB)); navigate('report'); }} />;
   };
 
+  if (!authenticated) {
+    return <LoginPage onLogin={() => setAuthenticated(true)} />;
+  }
+
   return (
-    <div className="product-shell">
+    <div className={`product-shell ${darkMode ? 'dark-mode' : ''}`}>
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <div className="sidebar-brand">
           <span className="sidebar-brand-mark"><BarChart3 size={17} strokeWidth={2.8} /></span>
@@ -413,7 +454,7 @@ function AppContent() {
           <button className={`sidebar-link ${page === 'settings' ? 'active' : ''}`} onClick={() => navigate('settings')}><Settings size={16} /><span>Settings</span></button>
         </nav>
         <div className="sidebar-bottom">
-          <button className="sidebar-link"><LogOut size={16} /><span>Log out</span></button>
+          <button className="sidebar-link" onClick={signOut}><LogOut size={16} /><span>Log out</span></button>
           <div className="privacy-card"><CheckCircle2 size={15} /><span>Your resume stays private and is analyzed locally.</span></div>
         </div>
       </aside>
@@ -423,7 +464,7 @@ function AppContent() {
           <button className="mobile-menu mobile-only" onClick={() => setSidebarOpen(true)} aria-label="Open navigation"><Menu size={20} /></button>
           <div className="header-breadcrumb"><span>ATS Resume Scorer</span><ChevronRight size={14} /><strong>{page === 'report' ? 'Resume Analysis Result' : page === 'analyze' ? 'Analyze Resume' : page === 'dashboard' ? 'Dashboard' : page[0].toUpperCase() + page.slice(1)}</strong></div>
           <div className="header-actions">
-            <button className="icon-button" aria-label="Notifications"><Bell size={17} /></button>
+            <button className="icon-button" aria-label="Notifications" onClick={() => showToast('You are all caught up')}><Bell size={17} /></button>
             <div className="user-menu"><span className="avatar">SC</span><span className="user-name">Account</span><ChevronDown size={13} /></div>
           </div>
         </header>
@@ -431,6 +472,60 @@ function AppContent() {
       </main>
       {toast && <div className="toast-note" role="status">{toast}</div>}
     </div>
+  );
+}
+
+function LoginPage({ onLogin }: { onLogin: () => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [message, setMessage] = useState('');
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      setMessage('Enter an email and password to continue.');
+      return;
+    }
+    onLogin();
+  };
+
+  return (
+    <main className="auth-shell">
+      <section className="auth-visual">
+        <div className="auth-brand"><span className="auth-brand-mark"><BarChart3 size={18} /></span><strong>ATS Resume Scorer</strong></div>
+        <div className="auth-visual-copy">
+          <span className="eyebrow">CAREER CLARITY, FASTER</span>
+          <h1>Get your resume ATS score.</h1>
+          <p>Turn a good resume into a clear, targeted application with practical feedback you can act on.</p>
+          <div className="auth-feature-list">
+            {['Instant ATS Score', 'Keyword Analysis', 'Detailed Feedback', 'AI Suggestions'].map((feature) => (
+              <span key={feature}><CheckCircle2 size={16} />{feature}</span>
+            ))}
+          </div>
+        </div>
+        <div className="auth-visual-footer"><ShieldCheck size={15} /> Your resume stays private and is analyzed locally.</div>
+      </section>
+      <section className="auth-form-side">
+        <div className="auth-form-wrap">
+          <div className="auth-mobile-brand"><span className="auth-brand-mark"><BarChart3 size={18} /></span><strong>ATS Resume Scorer</strong></div>
+          <span className="eyebrow blue-eyebrow">{mode === 'login' ? 'WELCOME BACK' : 'GET STARTED'}</span>
+          <h2>{mode === 'login' ? 'Sign in to your workspace' : 'Create your workspace'}</h2>
+          <p className="auth-subtitle">Use the demo workspace to explore local resume scoring.</p>
+          <form className="auth-form" onSubmit={submit}>
+            <label>Email address<span className="input-with-icon"><Mail size={16} /><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" placeholder="you@example.com" autoComplete="email" /></span></label>
+            <label>Password<span className="input-with-icon"><LockKeyhole size={16} /><input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Enter your password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /></span></label>
+            <div className="auth-options"><label className="checkbox-label"><input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} /> Remember me</label><button type="button" className="auth-link" onClick={() => setMessage('Password recovery is not connected in this local demo.')}>Forgot password?</button></div>
+            {message && <p className="auth-message" role="status">{message}</p>}
+            <button className="blue-button auth-submit" type="submit">{mode === 'login' ? 'Login' : 'Create account'} <ArrowRight size={15} /></button>
+          </form>
+          <div className="auth-divider"><span>or continue with</span></div>
+          <div className="social-login-row"><button className="social-button" type="button" onClick={onLogin}><span className="google-mark">G</span> Google</button><button className="social-button" type="button" onClick={onLogin}><Github size={15} /> GitHub</button></div>
+          <p className="auth-switch">{mode === 'login' ? 'New to ATS Resume Scorer?' : 'Already have an account?'} <button type="button" className="auth-link" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(''); }}>{mode === 'login' ? 'Sign up' : 'Log in'}</button></p>
+        </div>
+      </section>
+    </main>
   );
 }
 
@@ -468,8 +563,10 @@ function AnalyzePage({
   resumeCount,
   fileInputRef,
   handleFile,
+  handleDrop,
   canAnalyze,
   runAnalysis,
+  isAnalyzing,
   clearAll,
   loadSample,
 }: {
@@ -481,8 +578,10 @@ function AnalyzePage({
   resumeCount: number;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleFile: (event: ChangeEvent<HTMLInputElement>) => void;
+  handleDrop: (event: DragEvent<HTMLLabelElement>) => void;
   canAnalyze: boolean;
   runAnalysis: () => void;
+  isAnalyzing: boolean;
   clearAll: () => void;
   loadSample: () => void;
 }) {
@@ -492,12 +591,12 @@ function AnalyzePage({
       <div className="analyze-layout">
         <div className="form-card">
           <div className="form-card-heading"><div><h2>Resume file</h2><p>Plain text works best for a private local scan.</p></div><span className="step-badge">1</span></div>
-          <label className={`upload-zone ${resume ? 'has-file' : ''}`}>
+          <label className={`upload-zone ${resume ? 'has-file' : ''}`} onDragOver={(event) => event.preventDefault()} onDrop={handleDrop}>
             <input ref={fileInputRef} type="file" accept=".txt,.md,.rtf,text/plain" onChange={handleFile} />
             <span className="upload-icon">{resume ? <CheckCircle2 size={25} /> : <FileUp size={25} />}</span>
             <strong>{fileName || 'Upload your resume'}</strong>
             <span>{fileName ? `${resumeCount} words ready for analysis` : 'Drag and drop your file here, or click to browse'}</span>
-            <em>{fileName ? 'Choose a different file' : 'TXT, MD, or RTF files supported'}</em>
+            <em>{fileName ? 'Choose a different file' : 'TXT, MD, or RTF · 5 MB maximum'}</em>
           </label>
           <div className="paste-divider"><span>or paste resume text</span></div>
           <div className="textarea-wrap"><textarea className="resume-input" value={resume} onChange={(event) => setResume(event.target.value)} placeholder="Paste the text from your resume here..." aria-label="Resume text" /><span className="textarea-count">{resumeCount} words</span></div>
@@ -508,7 +607,7 @@ function AnalyzePage({
           <div className="privacy-note"><CircleHelp size={15} /><span>Everything is scored locally in your browser and never uploaded.</span></div>
         </div>
       </div>
-      <div className="analyze-actions"><button className="clear-button" onClick={clearAll}><X size={15} /> Clear all</button><button className="blue-button large" onClick={runAnalysis} disabled={!canAnalyze}><Search size={16} /> Analyze Resume</button></div>
+      <div className="analyze-actions"><button className="clear-button" onClick={clearAll} disabled={isAnalyzing}><X size={15} /> Clear all</button><button className="blue-button large" onClick={runAnalysis} disabled={!canAnalyze || isAnalyzing}>{isAnalyzing ? <span className="loading-dots"><i /><i /><i /></span> : <Search size={16} />} {isAnalyzing ? 'Analyzing...' : 'Analyze Resume'}</button></div>
     </section>
   );
 }
@@ -531,16 +630,74 @@ function ReportPage({ analysis, onBack, onCopy, onDownload, expandedFix, setExpa
   );
 }
 
-function ReportsPage({ onViewReport }: { onViewReport: () => void }) {
-  return <section className="page-section"><div className="page-title-row"><div><h1>My Reports</h1><p>Review your recent resume scans and compare improvements over time.</p></div><button className="blue-button" onClick={onViewReport}><FileText size={15} /> Open latest report</button></div><div className="reports-list"><AnalysisRow file="Sushant_Resume.pdf" role="Software Engineer" score={88} date="28 Sep 2026" onView={onViewReport} /><AnalysisRow file="Resume_DataScience.pdf" role="Data Analyst" score={76} date="26 Sep 2026" onView={onViewReport} /><AnalysisRow file="WebDev_Resume.pdf" role="Frontend Developer" score={65} date="24 Sep 2026" onView={onViewReport} /></div></section>;
+function ReportsPage({ onViewReport, onDownload, onNotify }: { onViewReport: () => void; onDownload: () => void; onNotify: (message: string) => void }) {
+  const [query, setQuery] = useState('');
+  const [reports, setReports] = useState<ReportRecord[]>([
+    { id: 'resume-1', file: 'Sushant_Resume.pdf', role: 'Software Engineer', score: 88, date: '28 Sep 2026' },
+    { id: 'resume-2', file: 'Resume_DataScience.pdf', role: 'Data Analyst', score: 76, date: '26 Sep 2026' },
+    { id: 'resume-3', file: 'WebDev_Resume.pdf', role: 'Frontend Developer', score: 65, date: '24 Sep 2026' },
+  ]);
+  const filteredReports = reports.filter((report) => `${report.file} ${report.role}`.toLowerCase().includes(query.toLowerCase()));
+
+  const removeReport = (id: string) => {
+    setReports((current) => current.filter((report) => report.id !== id));
+    onNotify('Report removed from this view');
+  };
+
+  return (
+    <section className="page-section">
+      <div className="page-title-row"><div><h1>My Reports</h1><p>Review your recent resume scans and compare improvements over time.</p></div><button className="blue-button" onClick={onViewReport}><FileText size={15} /> Open latest report</button></div>
+      <div className="reports-toolbar"><div className="search-field"><Search size={15} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search reports..." aria-label="Search reports" /></div><span>{filteredReports.length} report{filteredReports.length === 1 ? '' : 's'}</span></div>
+      <div className="report-card-grid">
+        {filteredReports.map((report) => (
+          <article className="report-card" key={report.id}>
+            <div className="report-card-top"><span className="report-file-icon"><FileText size={17} /></span><button className="icon-button report-more" aria-label={`Delete ${report.file}`} onClick={() => removeReport(report.id)}><X size={15} /></button></div>
+            <strong>{report.file}</strong><span className="report-role">{report.role}</span>
+            <div className="report-card-meta"><span className={`score-pill ${report.score >= 80 ? 'high' : report.score >= 70 ? 'mid' : 'low'}`}>{report.score}% ATS</span><span>{report.date}</span></div>
+            <div className="report-card-actions"><button className="view-button" onClick={onViewReport}>View report <ChevronRight size={13} /></button><button className="outline-button compact-button" onClick={onDownload}><Download size={13} /> Download</button></div>
+          </article>
+        ))}
+      </div>
+      {!filteredReports.length && <div className="empty-page compact-empty"><div className="empty-page-icon"><Search size={20} /></div><h2>No reports found</h2><p>Try a different search term.</p></div>}
+    </section>
+  );
 }
 
-function SavedJobsPage({ onAnalyze }: { onAnalyze: () => void }) {
-  return <section className="page-section"><div className="page-title-row"><div><h1>Saved Jobs</h1><p>Keep target roles nearby so each resume scan is tailored to the right opportunity.</p></div><button className="blue-button" onClick={onAnalyze}><Plus size={16} /> Analyze a role</button></div><div className="job-grid"><JobCard company="Northstar Labs" role="Product Designer" match="92%" color="blue" /><JobCard company="Vertex Analytics" role="UX Designer" match="86%" color="green" /><JobCard company="Forma Studio" role="Senior Product Designer" match="78%" color="orange" /></div></section>;
+function SavedJobsPage({ onAnalyze, onNotify }: { onAnalyze: () => void; onNotify: (message: string) => void }) {
+  const jobs = [
+    { company: 'Northstar Labs', role: 'Product Designer', match: '92%', color: 'blue', location: 'San Francisco · Hybrid' },
+    { company: 'Vertex Analytics', role: 'UX Designer', match: '86%', color: 'green', location: 'Remote · United States' },
+    { company: 'Forma Studio', role: 'Senior Product Designer', match: '78%', color: 'orange', location: 'New York · On-site' },
+  ];
+  return <section className="page-section"><div className="page-title-row"><div><h1>Saved Jobs</h1><p>Keep target roles nearby so each resume scan is tailored to the right opportunity.</p></div><button className="blue-button" onClick={onAnalyze}><Plus size={16} /> Analyze a role</button></div><div className="job-grid">{jobs.map((job) => <JobCard key={job.company} {...job} onApply={() => onNotify(`Opening ${job.role} at ${job.company}`)} />)}</div></section>;
 }
 
-function SimplePage({ icon, title, description, action }: { icon: ReactNode; title: string; description: string; action: string }) {
-  return <section className="page-section"><div className="page-title-row"><div><h1>{title}</h1><p>{description}</p></div><button className="blue-button"><Settings size={15} /> {action}</button></div><div className="empty-page"><div className="empty-page-icon">{icon}</div><h2>{title} controls are ready for your workspace</h2><p>Keep your resume scoring workflow focused, private, and easy to return to.</p></div></section>;
+function ProfilePage({ onNotify }: { onNotify: (message: string) => void }) {
+  const [profile, setProfile] = useState({ name: 'Sushant Chandra', email: 'sushant@example.com', college: 'University of Delhi', degree: 'B.Tech. Computer Science', skills: 'React, TypeScript, SQL, Product Design' });
+  const update = (field: keyof typeof profile) => (event: ChangeEvent<HTMLInputElement>) => setProfile((current) => ({ ...current, [field]: event.target.value }));
+  return (
+    <section className="page-section">
+      <div className="page-title-row"><div><h1>Profile</h1><p>Keep the details attached to your resume scoring workspace up to date.</p></div><button className="blue-button" onClick={() => onNotify('Profile changes saved')}><Check size={15} /> Save changes</button></div>
+      <div className="profile-layout"><div className="profile-card profile-summary"><div className="large-avatar">SC</div><h2>{profile.name}</h2><p>{profile.email}</p><span className="profile-status"><CheckCircle2 size={13} /> Workspace member</span></div><div className="profile-card"><div className="card-title-row"><h2>Personal details</h2><span>Shown on your workspace</span></div><div className="profile-form"><label>Full name<input value={profile.name} onChange={update('name')} /></label><label>Email address<input value={profile.email} onChange={update('email')} type="email" /></label><label>College<input value={profile.college} onChange={update('college')} /></label><label>Degree<input value={profile.degree} onChange={update('degree')} /></label><label className="full-field">Skills<input value={profile.skills} onChange={update('skills')} /></label></div></div></div>
+    </section>
+  );
+}
+
+function SettingsPage({ darkMode, setDarkMode, onSignOut, onNotify }: { darkMode: boolean; setDarkMode: (value: boolean) => void; onSignOut: () => void; onNotify: (message: string) => void }) {
+  const [notifications, setNotifications] = useState(true);
+  const [language, setLanguage] = useState('English');
+  return (
+    <section className="page-section">
+      <div className="page-title-row"><div><h1>Settings</h1><p>Control how your resume scoring workspace looks and communicates.</p></div><button className="outline-button" onClick={() => onNotify('Settings are saved automatically')}><Check size={15} /> Saved automatically</button></div>
+      <div className="settings-card">
+        <div className="settings-row"><div><strong>Dark mode</strong><span>Use a darker workspace when you prefer lower contrast.</span></div><button className={`toggle ${darkMode ? 'on' : ''}`} aria-label="Toggle dark mode" aria-pressed={darkMode} onClick={() => setDarkMode(!darkMode)}><span /></button></div>
+        <div className="settings-row"><div><strong>Notifications</strong><span>Receive helpful reminders about your resume workflow.</span></div><button className={`toggle ${notifications ? 'on' : ''}`} aria-label="Toggle notifications" aria-pressed={notifications} onClick={() => setNotifications(!notifications)}><span /></button></div>
+        <div className="settings-row"><div><strong>Language</strong><span>Choose the language used across the workspace.</span></div><select value={language} onChange={(event) => setLanguage(event.target.value)}><option>English</option><option>Hindi</option><option>Spanish</option></select></div>
+        <div className="settings-row"><div><strong>Privacy</strong><span>Your resume text is analyzed locally and is not uploaded.</span></div><span className="privacy-status"><ShieldCheck size={15} /> Local only</span></div>
+        <div className="settings-row danger-row"><div><strong>Log out</strong><span>End this local workspace session on this device.</span></div><button className="outline-button" onClick={onSignOut}><LogOut size={14} /> Log out</button></div>
+      </div>
+    </section>
+  );
 }
 
 function MetricCard({ icon, iconTone, value, label }: { icon: ReactNode; iconTone: string; value: string; label: string }) {
@@ -551,8 +708,8 @@ function AnalysisRow({ file, role, score, date, onView }: { file: string; role: 
   return <div className="analysis-table data-row"><span className="file-cell"><span className="file-mini-icon"><FileText size={14} /></span>{file}</span><span>{role}</span><span><span className={`score-pill ${score >= 80 ? 'high' : score >= 70 ? 'mid' : 'low'}`}>{score}%</span></span><span>{date}</span><span><button className="view-button" onClick={onView}>View <ChevronRight size={13} /></button></span></div>;
 }
 
-function JobCard({ company, role, match, color }: { company: string; role: string; match: string; color: string }) {
-  return <div className="job-card"><div className={`company-logo ${color}`}>{company.slice(0, 1)}</div><div className="job-card-copy"><strong>{role}</strong><span>{company}</span><small>{match} profile match</small></div><Bookmark size={16} className="job-bookmark" /></div>;
+function JobCard({ company, role, match, color, location, onApply }: { company: string; role: string; match: string; color: string; location: string; onApply: () => void }) {
+  return <div className="job-card"><div className={`company-logo ${color}`}>{company.slice(0, 1)}</div><div className="job-card-copy"><strong>{role}</strong><span>{company}</span><small>{location}</small><b>{match} profile match</b></div><div className="job-card-actions"><Bookmark size={16} className="job-bookmark" /><button className="view-button" onClick={onApply}>Apply <ArrowRight size={12} /></button></div></div>;
 }
 
 function ShieldLineIcon() {

@@ -1,0 +1,228 @@
+Build a complete ATS Resume Scorer web application using React + Vite + Tailwind CSS.
+
+GOAL:
+Create a premium modern desktop SaaS website exactly like a professional ATS Resume Scorer. Keep the existing resume score functionality working. Only improve the UI and add the pages below.
+
+--------------------------------------------------
+DESIGN SYSTEM
+--------------------------------------------------
+
+Theme:
+- Primary: #2563EB
+- Dark Navy: #0F172A
+- Background: #F8FAFC
+- Card: #FFFFFF
+- Border: #E5E7EB
+
+Font:
+- Inter
+
+Style:
+- Rounded 20px cards
+- Soft shadows
+- Clean spacing
+- Professional SaaS dashboard
+- Desktop first (16:9)
+- Fully responsive
+
+--------------------------------------------------
+PAGE 1 — LOGIN
+--------------------------------------------------
+
+Left Side:
+- Dark blue gradient
+- Logo + ATS Resume Scorer
+- Heading:
+  "Get Your Resume ATS Score"
+- Features:
+  ✓ Instant ATS Score
+  ✓ Keyword Analysis
+  ✓ Detailed Feedback
+  ✓ AI Suggestions
+
+Right Side:
+- Welcome Back
+- Email input
+- Password input
+- Remember me
+- Forgot password
+- Login button
+- Continue with Google
+- Continue with GitHub
+- Sign up link
+
+--------------------------------------------------
+PAGE 2 — DASHBOARD
+--------------------------------------------------
+
+Left Sidebar:
+- Logo
+- Dashboard
+- Analyze Resume
+- My Reports
+- Saved Jobs
+- Profile
+- Settings
+- Logout
+
+Top Navbar:
+- User avatar
+- Notification bell
+
+Statistics Cards:
+- Resumes Analyzed
+- Saved Jobs
+- Average ATS Score
+- This Week
+
+Recent Analysis Table:
+Columns:
+- Resume Name
+- Job Role
+- Score
+- Date
+- View Button
+
+--------------------------------------------------
+PAGE 3 — ANALYZE RESUME
+--------------------------------------------------
+
+Header:
+"Analyze Your Resume"
+
+Upload Card:
+- Drag & Drop PDF
+- Browse button
+- Maximum 5 MB
+- PDF only
+
+Job Description:
+- Large textarea
+- Optional
+
+Blue Button:
+"Analyze Resume"
+
+Show loading animation while analyzing.
+
+--------------------------------------------------
+PAGE 4 — ATS RESULT
+--------------------------------------------------
+
+Large Circular Score:
+85%
+
+Progress Bars:
+- Skills Match
+- Keyword Match
+- Formatting
+- Content Quality
+
+Keyword Section:
+Matched:
+Python
+SQL
+Pandas
+Machine Learning
+React
+JavaScript
+
+Missing:
+AWS
+Docker
+TensorFlow
+NLP
+Deep Learning
+
+AI Suggestions Card:
+- Add measurable achievements
+- Improve formatting
+- Add industry keywords
+- Include certifications
+
+Buttons:
+- Download PDF Report
+- Analyze Another Resume
+
+--------------------------------------------------
+PAGE 5 — MY REPORTS
+--------------------------------------------------
+
+Cards showing previous reports.
+
+Each card contains:
+- Resume name
+- Score
+- Date
+- Download
+- Delete
+
+Search bar on top.
+
+--------------------------------------------------
+PAGE 6 — SAVED JOBS
+--------------------------------------------------
+
+Job cards:
+- Company
+- Role
+- Match %
+- Apply button
+
+--------------------------------------------------
+PAGE 7 — PROFILE
+--------------------------------------------------
+
+Editable fields:
+- Name
+- Email
+- College
+- Degree
+- Skills
+
+Profile image.
+
+--------------------------------------------------
+PAGE 8 — SETTINGS
+--------------------------------------------------
+
+Options:
+- Dark mode toggle
+- Notification toggle
+- Language
+- Privacy
+- Logout
+
+--------------------------------------------------
+FUNCTIONALITY
+--------------------------------------------------
+
+Keep working features:
+- Resume upload
+- ATS score calculation
+- Keyword matching
+- Progress bars
+- Report generation
+
+Use React Router for navigation.
+
+Create reusable components:
+- Sidebar
+- Navbar
+- StatCard
+- UploadBox
+- ScoreCircle
+- ProgressBar
+- KeywordChip
+- ReportCard
+
+Folder structure:
+
+src/
+ components/
+ pages/
+ assets/
+ hooks/
+ utils/
+
+Output a polished production-quality UI.
