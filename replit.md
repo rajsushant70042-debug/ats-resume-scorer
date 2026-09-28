@@ -22,8 +22,8 @@ A browser-only resume analysis tool that compares a resume with a target role an
 
 ## Where things live
 
-- `artifacts/ats-resume-scorer/src/App.tsx` — root experience, local scoring logic, report actions
-- `artifacts/ats-resume-scorer/src/index.css` — visual theme and responsive layout
+- `artifacts/ats-resume-scorer/src/App.tsx` — product shell, dashboard, analyzer, report views, local scoring logic
+- `artifacts/ats-resume-scorer/src/index.css` — dashboard visual theme, responsive layout, score/report components
 - `artifacts/ats-resume-scorer` — deployable React/Vite web artifact
 
 ## Architecture decisions
@@ -36,6 +36,7 @@ A browser-only resume analysis tool that compares a resume with a target role an
 
 - Paste resume and target role text or load a supported text file.
 - Try a demo resume and role to see the full report.
+- Move between Dashboard, Analyze Resume, My Reports, Saved Jobs, Profile, and Settings views.
 - Get an overall score, weighted signal breakdown, parser readout, and prioritized fixes with examples.
 - Copy or download a concise text report.
 
