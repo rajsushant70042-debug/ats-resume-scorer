@@ -673,7 +673,7 @@ function SavedJobsPage({ onAnalyze, onNotify }: { onAnalyze: () => void; onNotif
 }
 
 function ProfilePage({ onNotify }: { onNotify: (message: string) => void }) {
-  const [profile, setProfile] = useState({ name: 'Sushant Raj', email: 'sushant@example.com', college: 'University of Delhi', degree: 'B.Tech. Computer Science', skills: 'React, TypeScript, SQL, Product Design' });
+  const [profile, setProfile] = useState({ name: 'Sushant Raj', email: 'sushant@example.com', college: 'AMPICS College', degree: 'DD(BCA-MCA)', skills: 'React, TypeScript, SQL, Product Design' });
   const update = (field: keyof typeof profile) => (event: ChangeEvent<HTMLInputElement>) => setProfile((current) => ({ ...current, [field]: event.target.value }));
   return (
     <section className="page-section">
